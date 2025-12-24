@@ -308,6 +308,13 @@
 
         <div class="results-container">
             {% if results %}
+                <div style="background-color: #fff8e1; border-left: 5px solid #ffc107; color: #664d03; padding: 15px; margin-bottom: 25px; border-radius: 4px; font-size: 0.9rem; line-height: 1.6;">
+                    <i class="fa-solid fa-circle-info" style="margin-right: 8px;"></i>
+                    <strong>搜尋結果翻譯說明：</strong>
+                    <br>
+                    本網站利用 AI 為您摘要重點，但點擊標題後將前往 <strong>Naver 韓文原文網站</strong>。
+                    我們無法自動更改外部網站的語言，若需閱讀全文，建議使用電腦或手機瀏覽器內建的 <strong>「翻譯網頁」</strong> 功能 (Google Translate)。
+                </div>
                 {% for item in results %}
                 <div class="result-card">
                     <a href="{{ item.link }}" target="_blank">{{ item.title | safe }}</a>
@@ -343,3 +350,4 @@
 
 </body>
 </html>
+
