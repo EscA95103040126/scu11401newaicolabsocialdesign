@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>韓國搜尋引擎 - 作業版</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+        h1 { text-align: center; color: #333; }
+        form { text-align: center; margin-bottom: 30px; }
+        input { padding: 12px; width: 400px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 12px 20px; font-size: 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0055aa; }
+        ul { list-style: none; padding: 0; max-width: 800px; margin: 0 auto; }
+        li { background: white; margin-bottom: 15px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        a { color: #0066cc; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        .info { text-align: center; color: #666; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>韓國生活搜尋引擎（中文輸入 → Naver 韓國結果）</h1>
+    <form method="post">
+        <input type="text" name="query" placeholder="輸入中文，如：仁寺洞咖啡廳" required>
+        <button type="submit">搜尋</button>
+    </form>
+    
+    {% if results %}
+        <div class="info">
+            <p>你的輸入：{{ original_query }}</p>
+            <p>翻譯成韓文：{{ korean_query }}</p>
+        </div>
+        <h2>Naver 搜尋結果（AI 翻譯 + 摘要）</h2>
+        <ul>
+            {% for item in results %}
+                <li>
+                    <a href="{{ item.link }}" target="_blank">{{ item.title }}</a>
+                    <p>{{ item.summary }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
