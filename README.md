@@ -22,6 +22,15 @@
 * **Search Provider**: Naver Search API (News & Blog)
 * **Deployment**: Render (Cloud Application Hosting)
 
+## ⚠️ 使用注意事項 (Important Note)
+
+本系統搜尋結果皆直接串接自 **韓國 Naver 搜尋引擎**，因此點擊標題後導向的網頁內容均為 **韓文原文**。
+
+* **看不懂韓文怎麼辦？**
+    建議使用瀏覽器內建的翻譯功能閱讀全文：
+    * 💻 **電腦版**：在網頁上點擊「滑鼠右鍵」→ 選擇「翻譯成中文」。
+    * 📱 **手機版**：點擊網址列旁的「Aa」或「翻譯」圖示進行網頁翻譯。
+
 ## ⚙️ 本地端執行 (Installation)
 
 如果你想要在自己的電腦上執行這個專案，請按照以下步驟操作：
