@@ -1,4 +1,4 @@
-# 🇰🇷韓國生活資訊搜尋引擎 (Korea Living Search Engine)
+# 🇰🇷 韓國生活資訊搜尋引擎 (Korea Living Search Engine)
 
 這是一個結合 **Google Gemini AI** 與 **Naver Search API** 的智慧搜尋引擎專案。
 
