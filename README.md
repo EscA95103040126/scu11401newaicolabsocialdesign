@@ -19,4 +19,4 @@
 - AI：Gemini 3 Flash Preview
 - 搜尋：Naver Open API
 
-GitHub：https://github.com/你的用戶名/korea-search-engine
+GitHub：https://github.com/EscA95103040126/korea-search-engine
