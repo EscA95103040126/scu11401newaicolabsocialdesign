@@ -2,42 +2,101 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>韓國搜尋引擎 - 作業版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>韓國生活搜尋引擎</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
-        h1 { text-align: center; color: #333; }
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; }
+        h1 { text-align: center; color: #0066cc; }
         form { text-align: center; margin-bottom: 30px; }
         input { padding: 12px; width: 400px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 12px 20px; font-size: 16px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button { padding: 12px 20px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         button:hover { background: #0055aa; }
-        ul { list-style: none; padding: 0; max-width: 800px; margin: 0 auto; }
-        li { background: white; margin-bottom: 15px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        a { color: #0066cc; text-decoration: none; font-weight: bold; }
+        .info { text-align: center; margin: 20px 0; font-weight: bold; }
+        ul { list-style: none; padding: 0; max-width: 900px; margin: 0 auto; }
+        li { background: white; margin-bottom: 20px; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        a { color: #0066cc; text-decoration: none; font-weight: bold; display: block; margin-bottom: 10px; }
         a:hover { text-decoration: underline; }
-        .info { text-align: center; color: #666; margin-bottom: 20px; }
+        .loading { text-align: center; color: #666; }
     </style>
 </head>
 <body>
     <h1>韓國生活搜尋引擎（中文輸入 → Naver 韓國結果）</h1>
-    <form method="post">
-        <input type="text" name="query" placeholder="輸入中文，如：仁寺洞咖啡廳" required>
+    <form id="searchForm">
+        <input type="text" id="query" placeholder="輸入中文，如：仁寺洞咖啡廳" required>
         <button type="submit">搜尋</button>
     </form>
     
-    {% if results %}
-        <div class="info">
-            <p>你的輸入：{{ original_query }}</p>
-            <p>翻譯成韓文：{{ korean_query }}</p>
-        </div>
-        <h2>Naver 搜尋結果（AI 翻譯 + 摘要）</h2>
-        <ul>
-            {% for item in results %}
-                <li>
-                    <a href="{{ item.link }}" target="_blank">{{ item.title }}</a>
-                    <p>{{ item.summary }}</p>
-                </li>
-            {% endfor %}
-        </ul>
+    <div id="status" class="info loading">請輸入關鍵字開始搜尋</div>
+    <div id="results"></div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const status = document.getElementById('status');
+        const resultsDiv = document.getElementById('results');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('query').value.trim();
+            if (!query) return;
+
+            status.textContent = '搜尋中...';
+            resultsDiv.innerHTML = '';
+
+            try {
+                // 步驟1: 用 Gemini 翻譯成韓文（這裡用你的 API Key，記得換成真實的！）
+                const translateResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=YOUR_GEMINI_API_KEY`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `只輸出簡短韓文搜尋關鍵字，不要加解釋：${query}` }] }]
+                    })
+                });
+                const translateData = await translateResponse.json();
+                const koreanQuery = translateData.candidates[0].content.parts[0].text.trim();
+
+                status.textContent = `翻譯成韓文：${koreanQuery}`;
+
+                // 步驟2: 用 Naver API 搜尋（換成你的 Client ID/Secret）
+                const naverResponse = await fetch(`https://openapi.naver.com/v1/search/blog.json?query=${encodeURIComponent(koreanQuery)}&display=10`, {
+                    headers: {
+                        'X-Naver-Client-Id': 'YOUR_NAVER_CLIENT_ID',
+                        'X-Naver-Client-Secret': 'YOUR_NAVER_CLIENT_SECRET'
+                    }
+                });
+                const naverData = await naverResponse.json();
+
+                if (naverData.items && naverData.items.length > 0) {
+                    let html = '<h2>Naver 搜尋結果（AI 翻譯 + 摘要）</h2><ul>';
+                    for (const item of naverData.items) {
+                        const title = item.title.replace(/<[^>]+>/g, '');
+                        const desc = item.description.replace(/<[^>]+>/g, '');
+
+                        // 步驟3: 用 Gemini 翻譯摘要（可省略或加）
+                        const summaryResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=YOUR_GEMINI_API_KEY`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: `將以下韓文翻譯成繁體中文並簡短摘要：標題: ${title}\n描述: ${desc}` }] }]
+                            })
+                        });
+                        const summaryData = await summaryResponse.json();
+                        const translatedSummary = summaryData.candidates[0].content.parts[0].text.trim();
+
+                        html += `<li><a href="${item.link}" target="_blank">${title}</a><p>${translatedSummary}</p></li>`;
+                    }
+                    html += '</ul>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<p>沒有找到結果，請試其他關鍵字。</p>';
+                }
+            } catch (error) {
+                status.textContent = '錯誤：' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
     {% endif %}
 </body>
+
 </html>
