@@ -20,17 +20,19 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 NAVER_CLIENT_ID = os.getenv('NAVER_CLIENT_ID')
 NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET')
 
-# 設定 Gemini (作為備案與複雜推理用)
+# 設定 Gemini
+# 建議使用 gemini-1.5-flash，速度快且穩定
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-3-flash-preview') 
+model = genai.GenerativeModel('gemini-1.5-flash') 
 
 app = FastAPI()
 
 # 設定靜態檔案與模板目錄
+# 請確保目錄結構中有 static 和 templates 資料夾
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# === 1. Papago 翻譯工具 (新增) ===
+# === 1. Papago 翻譯工具 ===
 def translate_with_papago(text, source="zh-TW", target="ko"):
     """
     使用 Naver Papago NMT API 翻譯。
@@ -60,7 +62,7 @@ def translate_with_papago(text, source="zh-TW", target="ko"):
         print(f"Papago 呼叫失敗：{str(e)}")
         return None
 
-# === 2. 核心翻譯邏輯 (更新：字典 -> Papago -> Gemini) ===
+# === 2. 核心翻譯邏輯 (字典 -> Papago -> Gemini) ===
 @lru_cache(maxsize=100) # 加入快取，節省 API
 def translate_to_korean(text):
     """
@@ -72,11 +74,11 @@ def translate_to_korean(text):
     
     # --- 意圖修正字典 (Intent Correction) ---
     corrections = {
-        # [交通類] - 這是解決你 "首爾航班" 搜不到的關鍵
-        "航班": "항공권",      # 航班 -> 機票 (Ticket)
+        # [交通類]
+        "航班": "항공권",      # 航班 -> 機票
         "機票": "항공권",
-        "飛機": "비행기표",    # 飛機 -> 飛機票
-        "怎麼去": "가는법",    # How to go
+        "飛機": "비행기표",
+        "怎麼去": "가는법",
         "交通": "교통편",
         "高鐵": "KTX",
         
@@ -86,18 +88,18 @@ def translate_to_korean(text):
         "漢南洞": "한남동", "聖水洞": "성수동", "延南洞": "연남동",
         
         # [購物/美食]
-        "必買": "쇼핑리스트",  # Shopping List
-        "美食": "맛집",        # 美食店
+        "必買": "쇼핑리스트",
+        "美食": "맛집",
         "好吃": "맛집",
         "藥妝": "올리브영",    # Olive Young
         "推薦": "추천",
-        "評價": "후기",        # Review/後記
+        "評價": "후기",
         "菜單": "메뉴",
         
         # [追星/娛樂]
         "舞台": "직캠",        # Fancam/直拍
-        "好笑": "웃긴 영상",   # Funny video
-        "同款": "손민수"       # 粉絲買同款
+        "好笑": "웃긴 영상",
+        "同款": "손민수"
     }
 
     processed_text = text
@@ -114,7 +116,6 @@ def translate_to_korean(text):
         return processed_text.strip()
 
     # 步驟 B: Papago 翻譯 (處理剩下的中文)
-    # 我們將處理過(部分韓文)的字串丟進去，Papago 通常能理解混合語
     papago_result = translate_with_papago(processed_text, source="zh-TW", target="ko")
     
     if papago_result:
@@ -122,7 +123,7 @@ def translate_to_korean(text):
         cleaned = re.sub(r'[^\uac00-\ud7a3a-zA-Z0-9\s]', '', papago_result).strip()
         return cleaned
 
-    # 步驟 C: Gemini Fallback (如果 Papago 掛了或額度滿了)
+    # 步驟 C: Gemini Fallback
     print("Papago 失敗，切換至 Gemini...")
     try:
         prompt = f"將搜尋詞 '{processed_text}' 轉為韓文搜尋關鍵字。直接輸出韓文，不要解釋。"
@@ -130,7 +131,7 @@ def translate_to_korean(text):
         return response.text.strip()
     except Exception as e:
         print(f"Gemini 也失敗: {e}")
-        return processed_text # 真的沒辦法了，回傳原文
+        return processed_text 
 
 # === 3. Naver 搜尋 API (支援多種類型) ===
 def naver_search(query, page=1, display=10, search_type="blog"):
@@ -140,8 +141,9 @@ def naver_search(query, page=1, display=10, search_type="blog"):
     """
     start = (page - 1) * display + 1
     
-    # 動態切換 API 端點
-    if search_type not in ["blog", "news", "webkr"]:
+    # 動態切換 API 端點，預設為 blog
+    valid_types = ["blog", "news", "webkr"]
+    if search_type not in valid_types:
         search_type = "blog"
         
     url = f"https://openapi.naver.com/v1/search/{search_type}.json"
@@ -151,7 +153,6 @@ def naver_search(query, page=1, display=10, search_type="blog"):
         "X-Naver-Client-Secret": NAVER_CLIENT_SECRET
     }
     
-    # sort='sim' (關聯度), 'date' (日期)
     params = {"query": query, "display": display, "start": start, "sort": "sim"}
     
     try:
@@ -160,7 +161,7 @@ def naver_search(query, page=1, display=10, search_type="blog"):
             data = response.json()
             results = []
             for item in data.get('items', []):
-                # 移除 HTML tag (Naver 會回傳 <b>bold</b>)
+                # 移除 HTML tag
                 clean_title = re.sub('<[^<]+?>', '', item['title'])
                 clean_desc = re.sub('<[^<]+?>', '', item['description'])
                 
@@ -191,48 +192,66 @@ async def search_form(request: Request):
         "request": request, 
         "results": [], 
         "page": 1, 
-        "total_pages": 1
+        "total_pages": 1,
+        "search_type": "blog" # 預設類型
     })
 
 @app.post("/", response_class=HTMLResponse)
 @app.get("/search", response_class=HTMLResponse)
-async def search(request: Request, query: str = Form(None), page: int = 1, type: str = "blog"):
-    # 支援 Query String 與 Form Data
+async def search(
+    request: Request, 
+    query: str = Form(None), 
+    page: int = 1, 
+    # [關鍵修正] 使用 alias="type" 來正確接收表單中的 name="type"
+    search_type: str = Form(None, alias="type") 
+):
+    # 1. 處理輸入參數 (支援 Query String 與 Form Data)
     if query is None:
         query = request.query_params.get("query", "")
     
+    # 處理 search_type：如果是分頁(GET)請求，search_type 會是 None，要從網址參數抓
+    if search_type is None:
+        search_type = request.query_params.get("type", "blog")
+
     # 如果還是空的，回首頁
     if not query:
-        return templates.TemplateResponse("index.html", {"request": request, "results": [], "page": 1, "total_pages": 1})
+        return templates.TemplateResponse("index.html", {
+            "request": request, 
+            "results": [], 
+            "page": 1, 
+            "total_pages": 1,
+            "search_type": "blog"
+        })
 
-    print(f"搜尋: {query} | 頁碼: {page} | 類型: {type}")
+    print(f"搜尋: {query} | 頁碼: {page} | 類型: {search_type}")
     
-    # 1. 轉譯關鍵字
+    # 2. 轉譯關鍵字
     korean_query = translate_to_korean(query)
     
-    # 2. 執行搜尋
-    naver_results, total_pages = naver_search(korean_query, page, display=10, search_type=type)
+    # 3. 執行搜尋 (傳入正確的 search_type)
+    naver_results, total_pages = naver_search(korean_query, page, display=10, search_type=search_type)
     
-    # 3. 結果翻譯 (使用 Papago 加速，Gemini 備援)
+    # 4. 結果翻譯 (標題與描述翻成中文)
     final_results = []
     for result in naver_results:
-        # 標題翻譯 (韓 -> 繁中)
+        # 標題翻譯
         trans_title = translate_with_papago(result['title'], source="ko", target="zh-TW")
-        if not trans_title: # 如果 Papago 失敗，用原文
+        if not trans_title: 
             trans_title = result['title']
             
-        # 描述翻譯 (韓 -> 繁中)
+        # 描述翻譯
         trans_desc = translate_with_papago(result['description'], source="ko", target="zh-TW")
         if not trans_desc:
             trans_desc = result['description']
 
         final_results.append({
-            "title": trans_title,     # 顯示翻譯後的標題
-            "original_title": result['title'], # 保留原文標題(可選)
-            "summary": trans_desc,    # 顯示翻譯後的描述
+            "title": trans_title,
+            "original_title": result['title'],
+            "summary": trans_desc,
             "link": result['link']
         })
 
+    # 5. 回傳結果與狀態
     return templates.TemplateResponse("index.html", {
         "request": request,
         "results": final_results,
@@ -240,5 +259,5 @@ async def search(request: Request, query: str = Form(None), page: int = 1, type:
         "korean_query": korean_query,
         "page": page,
         "total_pages": total_pages,
-        "search_type": type
+        "search_type": search_type # 回傳類型，確保前端下拉選單位置正確
     })
