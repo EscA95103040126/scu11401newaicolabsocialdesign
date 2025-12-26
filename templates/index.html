@@ -117,22 +117,47 @@
             margin-top: 20px;
         }
 
+        /* 優化後的搜尋框樣式 (含下拉選單) */
         .search-box {
             display: flex;
             background: #fff;
-            padding: 10px 12px 10px 24px;
+            padding: 5px 12px 5px 20px; /* 調整內距 */
             border-radius: 50px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.06);
             border: 1px solid rgba(0,0,0,0.05);
             margin-top: 30px;
             align-items: center;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            box-shadow: 0 15px 45px rgba(66, 133, 244, 0.15);
+            border-color: rgba(66, 133, 244, 0.3);
+        }
+
+        /* 新增：搜尋類型下拉選單 */
+        .search-select {
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px;
+            outline: none;
+            margin-right: 10px;
+            border-right: 1px solid #eee; /* 分隔線 */
+        }
+        
+        .search-select:hover {
+            color: var(--accent-blue);
         }
 
         .search-box input {
             flex: 1;
             border: none;
             outline: none;
-            padding: 12px 0;
+            padding: 12px 10px;
             font-size: 1.15rem;
             background: transparent;
         }
@@ -146,6 +171,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: transform 0.2s;
+            white-space: nowrap;
         }
 
         .search-box button:hover { transform: scale(1.05); }
@@ -181,11 +207,20 @@
             font-size: 1.35rem;
             font-weight: 700;
             display: block;
-            margin-bottom: 12px;
+            margin-bottom: 6px; /* 稍微減少，給原文標題空間 */
         }
         
         .result-card a:hover {
             text-decoration: underline;
+        }
+
+        /* 新增：原文標題樣式 */
+        .original-title {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            font-weight: 400;
+            display: block;
         }
 
         /* --- 分頁按鈕樣式 --- */
@@ -287,20 +322,26 @@
             <p style="color: var(--text-sub); font-size: 1.1rem; font-weight: 300;">為中文使用者優化的在地化搜尋體驗</p>
             
             <form method="post" action="/" class="search-box">
+                <select name="type" class="search-select">
+                    <option value="blog" {% if search_type == 'blog' %}selected{% endif %}>部落格</option>
+                    <option value="news" {% if search_type == 'news' %}selected{% endif %}>新聞</option>
+                    <option value="webkr" {% if search_type == 'webkr' %}selected{% endif %}>網頁</option>
+                </select>
+
                 <input type="text" name="query" 
-                       placeholder="搜尋美食、社群動態、租房或是新聞..." 
+                       placeholder="輸入中文 (例如: 首爾航班、NMIXX回歸)..." 
                        value="{{ original_query if original_query else '' }}" 
                        onfocus="this.select()" required>
                 <button type="submit">搜尋</button>
             </form>
 
             {% if results %}
-            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
                 <div style="background: rgba(66, 133, 244, 0.05); color: #4285f4; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid rgba(66, 133, 244, 0.2); font-weight: 600;">
-                    搜尋詞：{{ original_query }} ➔ {{ korean_query }}
+                    中文搜尋：{{ original_query }}
                 </div>
-                <div style="background: rgba(16, 185, 129, 0.05); color: #059669; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid rgba(16, 185, 129, 0.2); font-weight: 600;">
-                    ✨ AI 摘要完成
+                <div style="background: rgba(155, 114, 203, 0.05); color: #9b72cb; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; border: 1px solid rgba(155, 114, 203, 0.2); font-weight: 600;">
+                    <i class="fa-solid fa-language"></i> 轉譯韓文：{{ korean_query }}
                 </div>
             </div>
             {% endif %}
@@ -310,21 +351,24 @@
             {% if results %}
                 <div style="background-color: #fff8e1; border-left: 5px solid #ffc107; color: #664d03; padding: 15px; margin-bottom: 25px; border-radius: 4px; font-size: 0.9rem; line-height: 1.6;">
                     <i class="fa-solid fa-circle-info" style="margin-right: 8px;"></i>
-                    <strong>搜尋結果翻譯說明：</strong>
+                    <strong>搜尋小秘訣：</strong>
                     <br>
-                    本網站利用 AI 為您摘要重點，但點擊標題後將前往 <strong>Naver 韓文原文網站</strong>。
-                    我們無法自動更改外部網站的語言，若需閱讀全文，建議使用電腦或手機瀏覽器內建的 <strong>「翻譯網頁」</strong> 功能 (Google Translate)。
+                    目前顯示的是經 Papago 翻譯成中文的標題，點擊後會前往 Naver 原文頁面。
+                    <br>
+                    類型建議：找食記/遊記用 <strong>「部落格」</strong>，找時事/偶像動態用 <strong>「新聞」</strong>。
                 </div>
+                
                 {% for item in results %}
                 <div class="result-card">
                     <a href="{{ item.link }}" target="_blank">{{ item.title | safe }}</a>
+                    <span class="original-title">原文: {{ item.original_title | safe }}</span>
                     <p style="line-height: 1.8; color: #475569; font-size: 1.05rem;">{{ item.summary | safe }}</p>
                 </div>
                 {% endfor %}
 
                 <div class="pagination">
                     {% if page > 1 %}
-                    <a href="/search?query={{ original_query }}&page={{ page - 1 }}" class="page-btn">
+                    <a href="/search?query={{ original_query }}&page={{ page - 1 }}&type={{ search_type }}" class="page-btn">
                         <i class="fa-solid fa-chevron-left"></i> 上一頁
                     </a>
                     {% endif %}
@@ -332,7 +376,7 @@
                     <span class="page-info">第 {{ page }} 頁 / 共 {{ total_pages }} 頁</span>
 
                     {% if page < total_pages %}
-                    <a href="/search?query={{ original_query }}&page={{ page + 1 }}" class="page-btn">
+                    <a href="/search?query={{ original_query }}&page={{ page + 1 }}&type={{ search_type }}" class="page-btn">
                         下一頁 <i class="fa-solid fa-chevron-right"></i>
                     </a>
                     {% endif %}
@@ -342,7 +386,7 @@
                 <div style="margin-top: 120px; text-align: center; color: #cbd5e1;">
                     <i class="fa-solid fa-rocket" style="font-size: 5rem; margin-bottom: 25px; opacity: 0.3;"></i>
                     <p style="font-size: 1.2rem;">輸入關鍵字，開始您的韓國探索旅行</p>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">支援：中文輸入 → 自動轉韓文搜尋 → 中文摘要結果</p>
+                    <p style="font-size: 0.9rem; margin-top: 10px;">系統將自動將您的中文意圖轉換為最道地的韓文關鍵字</p>
                 </div>
             {% endif %}
         </div>
@@ -350,4 +394,5 @@
 
 </body>
 </html>
+
 
