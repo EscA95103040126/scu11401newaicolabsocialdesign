@@ -95,7 +95,7 @@ async def search(
             "link": result['link']
         })
 
-        })
+
     
     # 4. Generate AI Summary (Async but wait for better UX, or could be separate API)
     # Since this app is simple, we wait.
