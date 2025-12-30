@@ -9,7 +9,7 @@ import logging
 from contextlib import asynccontextmanager
 
 # Import Services
-from services.translator import translate_to_korean, init_models
+from services.translator import translate_to_korean, init_models, generate_summary
 from services.naver import naver_search
 
 # Load Environment
@@ -95,9 +95,16 @@ async def search(
             "link": result['link']
         })
 
+        })
+    
+    # 4. Generate AI Summary (Async but wait for better UX, or could be separate API)
+    # Since this app is simple, we wait.
+    ai_summary = await generate_summary(query, final_results)
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "results": final_results,
+        "ai_summary": ai_summary,
         "original_query": query,
         "korean_query": korean_query,
         "page": page,

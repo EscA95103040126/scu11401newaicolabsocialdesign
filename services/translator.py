@@ -122,3 +122,41 @@ async def translate_to_korean(text):
             return processed_text
             
     return processed_text
+
+async def generate_summary(query, search_results):
+    """
+    Generate a summary of the search results using Gemini.
+    """
+    if not gemini_model or not search_results:
+        return None
+
+    try:
+        # Prepare context from top 5 results
+        context_text = ""
+        for i, res in enumerate(search_results[:5]):
+            # Handle potential different key names from Naver API vs processed dict
+            title = re.sub(r'<[^>]+>', '', res.get('title', ''))
+            description = re.sub(r'<[^>]+>', '', res.get('description', res.get('summary', '')))
+            context_text += f"{i+1}. {title}: {description}\n"
+
+        logger.info(f"Generating summary for query: {query}")
+        
+        prompt = f"""
+        Role: Helpful Assistant for Korea Travel/Living Information.
+        Task: Summarize the following Korean search results into Traditional Chinese (Taiwan).
+        User Query: "{query}"
+        Search Results:
+        {context_text}
+        
+        Rules:
+        1. Summarize the key trends, popular spots, or main opinions found in the results.
+        2. Keep it concise (under 150 words).
+        3. Use friendly, helpful tone.
+        4. Output in Traditional Chinese.
+        """
+        
+        response = await asyncio.to_thread(gemini_model.generate_content, prompt)
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Summary Generation Error: {e}")
+        return None
