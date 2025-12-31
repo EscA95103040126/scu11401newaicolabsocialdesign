@@ -50,15 +50,19 @@ def init_models(gemini_key: str):
 
     # Gemini
     if gemini_key:
+        masked_key = gemini_key[:4] + "***" + gemini_key[-4:] if len(gemini_key) > 8 else "***"
+        logger.info(f"Attempting to configure Gemini with key: {masked_key}")
         try:
             genai.configure(api_key=gemini_key)
+            # gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
+            # Using the user-verified model name
             gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
-            logger.info("Gemini configured.")
+            logger.info("Gemini configured successfully with model: gemini-3-flash-preview")
         except Exception as e:
-            logger.error(f"Gemini config failed: {e}")
+            logger.error(f"Gemini config failed CRITICAL ERROR: {e}")
             gemini_model = None
     else:
-        logger.warning("Gemini API Key missing.")
+        logger.warning("Gemini API Key missing. Environment variable GEMINI_API_KEY is not set or empty.")
 
 @lru_cache(maxsize=500)
 def _get_nllb_translation(text):
