@@ -54,10 +54,10 @@ def init_models(gemini_key: str):
         logger.info(f"Attempting to configure Gemini with key: {masked_key}")
         try:
             genai.configure(api_key=gemini_key)
-            # gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-            # Using stable model to avoid 404 errors with older/preview versions
-            gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
-            logger.info("Gemini configured successfully with model: gemini-2.0-flash-lite")
+            # gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
+            # Using current stable model (Dec 2025)
+            gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+            logger.info("Gemini configured successfully with model: gemini-2.5-flash")
         except Exception as e:
             logger.error(f"Gemini config failed CRITICAL ERROR: {e}")
             gemini_model = None
