@@ -85,6 +85,8 @@ async def search(
         client_id=NAVER_CLIENT_ID, client_secret=NAVER_CLIENT_SECRET
     )
     
+    logger.info(f"Naver Results Found: {len(naver_results)}")
+    
     # 3. Format Results
     final_results = []
     for result in naver_results:

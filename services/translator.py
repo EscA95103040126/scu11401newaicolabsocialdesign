@@ -131,7 +131,12 @@ async def generate_summary(query, search_results):
     """
     Generate a summary of the search results using Gemini.
     """
-    if not gemini_model or not search_results:
+    if not gemini_model:
+        logger.warning("Skipping summary generation: Gemini model is not initialized.")
+        return None
+        
+    if not search_results:
+        logger.warning("Skipping summary generation: No search results provided.")
         return None
 
     try:
