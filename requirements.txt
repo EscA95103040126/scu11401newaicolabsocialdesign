@@ -6,3 +6,6 @@ python-dotenv
 jinja2
 python-multipart
 httpx
+transformers
+torch
+sentencepiece

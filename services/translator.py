@@ -4,7 +4,7 @@ import asyncio
 import logging
 import google.generativeai as genai
 from functools import lru_cache
-# from transformers import pipeline
+from transformers import pipeline
 # Using absolute import assuming running from root, or relative if package.
 # Since app.py is entry point, 'dictionary' is at root level.
 # We might need to adjust python path or move dictionary.
@@ -38,15 +38,13 @@ def init_models(gemini_key: str):
     global nllb_translator, gemini_model
     
     # NLLB
-    # try:
-    #     logger.info("Loading NLLB-200 model...")
-    #     nllb_translator = pipeline("translation", model="facebook/nllb-200-distilled-600M", device=-1)
-    #     logger.info("NLLB-200 loaded successfully.")
-    # except Exception as e:
-    #     logger.error(f"NLLB load failed: {e}")
-    #     nllb_translator = None
-    logger.info("NLLB-200 disabled for memory optimization on Render free tier.")
-    nllb_translator = None
+    try:
+        logger.info("Loading NLLB-200 model...")
+        nllb_translator = pipeline("translation", model="facebook/nllb-200-distilled-600M", device=-1)
+        logger.info("NLLB-200 loaded successfully.")
+    except Exception as e:
+        logger.error(f"NLLB load failed: {e}")
+        nllb_translator = None
 
     # Gemini
     if gemini_key:
