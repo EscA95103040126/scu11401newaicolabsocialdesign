@@ -55,9 +55,9 @@ def init_models(gemini_key: str):
         try:
             genai.configure(api_key=gemini_key)
             # gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
-            # Using current stable model (Dec 2025)
-            gemini_model = genai.GenerativeModel('gemini-2.5-flash')
-            logger.info("Gemini configured successfully with model: gemini-2.5-flash")
+            # Reverting to 3-preview as requested by user
+            gemini_model = genai.GenerativeModel('gemini-3-flash-preview')
+            logger.info("Gemini configured successfully with model: gemini-3-flash-preview")
         except Exception as e:
             logger.error(f"Gemini config failed CRITICAL ERROR: {e}")
             gemini_model = None
