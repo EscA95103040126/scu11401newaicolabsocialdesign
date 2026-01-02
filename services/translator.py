@@ -1,5 +1,6 @@
 
 import re
+import os
 import asyncio
 import logging
 import google.generativeai as genai
@@ -37,14 +38,19 @@ def init_models(gemini_key: str):
     """Initialize NLLB and Gemini models"""
     global nllb_translator, gemini_model
     
-    # NLLB
-    try:
-        logger.info("Loading NLLB-200 model...")
-        nllb_translator = pipeline("translation", model="facebook/nllb-200-distilled-600M", device=-1)
-        logger.info("NLLB-200 loaded successfully.")
-    except Exception as e:
-        logger.error(f"NLLB load failed: {e}")
+    # Check if running on Render (or if NLLB is explicitly disabled)
+    if os.getenv("RENDER") or os.getenv("DISABLE_NLLB") == "true":
+        logger.info("Running on Render or NLLB disabled via env var. Skipping NLLB load to save memory.")
         nllb_translator = None
+    else:
+        # NLLB
+        try:
+            logger.info("Loading NLLB-200 model...")
+            nllb_translator = pipeline("translation", model="facebook/nllb-200-distilled-600M", device=-1)
+            logger.info("NLLB-200 loaded successfully.")
+        except Exception as e:
+            logger.error(f"NLLB load failed: {e}")
+            nllb_translator = None
 
     # Gemini
     if gemini_key:
